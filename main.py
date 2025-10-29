@@ -442,8 +442,8 @@ def soma_all_to_one(
     pop_size: int = 10,  # velikost populace
     path_length: float = 3.0,  # PRT - délka cesty k vůdci
     step: float = 0.11,  # délka kroku
-    prt: float = 0.3,  # perturbační vektor - pravděpodobnost změny dimenze
-    max_migrations: int = 20,  # počet migrací (iterací)
+    prt: float = 0.3,  # perturbace - pravděpodobnost změny dimenze - generuje se z něj perturbační vektor
+    max_migrations: int = 20,  # počet migračních kol (iterací)
     seed: Optional[int] = None,  # náhodný seed
     visualize: bool = False,  # vizualizace
     num_points: int = 200,  # hustota mřížky pro heatmapu
@@ -486,11 +486,14 @@ def soma_all_to_one(
     pop_size : int
         Velikost populace.
     path_length : float
-        Parametr PathLength - jak daleko směrem k leaderovi (typicky 1.5-3.0).
+        Parametr PathLength - jak daleko směrem k leaderovi (typicky 1.1 - 5>).
     step : float
-        Velikost kroku (typicky 0.11-0.33).
+        Velikost kroku (typicky 0.11 - path_length).
+        Vzorkování - udává jak hustě jedinec má "skákat" po trajektorii path_length.
     prt : float
-        Perturbační parametr - pravděpodobnost změny dimenze (typicky 0.1-0.4).
+        Perturbační parametr - pravděpodobnost změny dimenze (typicky 0.1-0.4, ale pohybuje se v intervalu [0,1]).
+        Jakési rušení jedince, ekvivalent mutace, vzniklo ryze jako geometrická záležitost.
+        Má dopad na dráhu jedince.
     max_migrations : int
         Počet migrací (iterací).
     seed : Optional[int]
@@ -611,8 +614,21 @@ def soma_all_to_one(
             # Čím menší step, tím více kroků a přesnější prohledávání (ale pomalejší)
             t = 0.0
             while t <= path_length:
-                # VZOREC SOMA: Nová pozice = aktuální pozice + t * PRT * (leader - aktuální pozice)
-                # kde * znamená násobení po složkách (element-wise)
+                # ================================================================
+                # SRDCE SOMA - ZÁKLADNÍ ROVNICE MIGRACE:
+                # ================================================================
+                # r = r0 + m * t * PRTVector
+                #
+                # kde:
+                #   r         = nová pozice jedince
+                #   r0        = aktuální pozice jedince (startovní bod)
+                #   m         = (leader - r0) = směrový vektor k leaderovi
+                #   t         = parametr cesty (0 až path_length)
+                #   PRTVector = perturbační vektor (binární maska 0/1)
+                #   *         = násobení po složkách (element-wise)
+                #
+                # V implementaci: new_position = individual.position + t * prt_vector * (leader.position - individual.position)
+                # ================================================================
                 
                 # Vypočítáme novou pozici pro tento krok t
                 new_position = []
